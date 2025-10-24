@@ -8,7 +8,7 @@ import { MaintenanceModal } from './components/MaintenanceModal.tsx';
 import { MonthSummary } from './components/MonthSummary.tsx';
 import { EntryDetailModal } from './components/EntryDetailModal.tsx';
 import { LoginScreen } from './components/LoginScreen.tsx';
-import { FuelPumpIcon, UserIcon, DollarSignIcon, GaugeIcon, RoadIcon, PlusIcon, CalculatorIcon, WrenchIcon, EditIcon } from './components/Icons.tsx';
+import { FuelPumpIcon, UserIcon, DollarSignIcon, GaugeIcon, RoadIcon, PlusIcon, CalculatorIcon, WrenchIcon, EditIcon, ExportIcon } from './components/Icons.tsx';
 
 // Helper Component for Stat Cards
 const StatsCard: React.FC<{ icon: React.ReactNode; label: string; value: string; }> = ({ icon, label, value }) => (
@@ -130,6 +130,38 @@ const App: React.FC = () => {
         return Array.from(months).sort((a: string, b: string) => b.localeCompare(a));
     }, [processedEntries]);
     
+    const maintenanceReminders = useMemo(() => {
+        const items = [
+            { id: 'oil', name: 'Troca de Óleo', interval: 10000, warning: 1000 },
+            { id: 'tires', name: 'Troca de Pneus', interval: 25000, warning: 1000 },
+            { id: 'engine', name: 'Revisão do Motor', interval: 50000, warning: 2000 }
+        ];
+
+        if (!currentMileage) return [];
+
+        return items.map(item => {
+            const lastServiceKm = maintenanceData[item.id as keyof MaintenanceData] || 0;
+            if (lastServiceKm === 0) return null;
+
+            const nextServiceKm = lastServiceKm + item.interval;
+            const kmRemaining = nextServiceKm - currentMileage;
+
+            let status = 'ok';
+            let message = '';
+
+            if (currentMileage >= nextServiceKm) {
+                status = 'overdue';
+                message = `Vencido há ${Math.abs(kmRemaining).toLocaleString('pt-BR')} km`;
+            } else if (currentMileage >= nextServiceKm - item.warning) {
+                status = 'warning';
+                message = `Faltam ${kmRemaining.toLocaleString('pt-BR')} km`;
+            }
+
+            return { ...item, status, message };
+        }).filter((item): item is NonNullable<typeof item> => item !== null && item.status !== 'ok');
+
+    }, [currentMileage, maintenanceData]);
+    
     const handleCloseModal = useCallback(() => {
         setActiveModal(null);
         setSelectedEntry(null);
@@ -154,6 +186,56 @@ const App: React.FC = () => {
     const handleSaveMaintenance = useCallback((data: MaintenanceData) => {
         setMaintenanceData(data);
     }, []);
+    
+    const handleExportCSV = useCallback(() => {
+        if (rawEntries.length === 0) {
+            alert("Não há dados para exportar.");
+            return;
+        }
+
+        const headers = ['id', 'date', 'totalValue', 'pricePerLiter', 'kmEnd', 'fuelType', 'notes'];
+        
+        const formatDate = (timestamp: Timestamp) => {
+            const date = timestamp.toDate();
+            const year = date.getUTCFullYear();
+            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(date.getUTCDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
+        // Create a sorted copy of raw entries for export
+        const sortedEntries = [...rawEntries].sort((a, b) => a.date.toMillis() - b.date.toMillis());
+
+        const csvRows = [
+            headers.join(','),
+            ...sortedEntries.map(entry => {
+                // Sanitize notes to handle commas and quotes within the string
+                const sanitizedNotes = `"${(entry.notes || '').replace(/"/g, '""')}"`;
+                const row = [
+                    entry.id,
+                    formatDate(entry.date),
+                    entry.totalValue.toFixed(2),
+                    entry.pricePerLiter.toFixed(3),
+                    entry.kmEnd,
+                    entry.fuelType,
+                    sanitizedNotes,
+                ];
+                return row.join(',');
+            })
+        ];
+
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'meu_combustivel_export.csv');
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }, [rawEntries]);
 
     const handleSelectEntry = (entry: ProcessedFuelEntry) => {
         setSelectedEntry(entry);
@@ -187,7 +269,7 @@ const App: React.FC = () => {
                 </div>
             </header>
             
-            <main className="max-w-4xl mx-auto p-4 pb-16">
+            <main className="max-w-4xl mx-auto p-4 pb-24">
                 <section className="mb-6">
                     <div className="bg-gradient-to-r from-green-800/70 to-black/40 p-3 rounded-lg mb-4 shadow-md">
                         <h2 className="text-xl font-semibold text-white">Visão Geral</h2>
@@ -199,20 +281,56 @@ const App: React.FC = () => {
                        <StatsCard icon={<GaugeIcon />} label={`Média ${monthFilter === 'all' ? 'Geral' : 'do Mês'}`} value={`${displayStats.averageKmpl.toFixed(1)} km/L`} />
                     </div>
                 </section>
+
+                {maintenanceReminders.length > 0 && (
+                    <section className="mb-8">
+                        <div className="bg-gradient-to-r from-yellow-800/70 to-red-800/40 p-3 rounded-lg mb-4 shadow-md">
+                            <h2 className="text-xl font-semibold text-white">Lembretes de Manutenção</h2>
+                        </div>
+                        <div className="space-y-3">
+                            {maintenanceReminders.map(reminder => (
+                                <button 
+                                    key={reminder.id}
+                                    onClick={() => setActiveModal('maintenance')}
+                                    className={`w-full text-left p-4 rounded-xl flex items-center gap-4 transition-transform hover:scale-[1.02] ${
+                                        reminder.status === 'warning'
+                                            ? 'bg-yellow-900/50 border border-yellow-700'
+                                            : 'bg-red-900/50 border border-red-700'
+                                    }`}
+                                >
+                                    <div className={`p-2 rounded-full ${
+                                        reminder.status === 'warning' ? 'bg-yellow-500/20' : 'bg-red-500/20'
+                                    }`}>
+                                    <WrenchIcon />
+                                    </div>
+                                    <div>
+                                        <p className={`font-bold ${
+                                            reminder.status === 'warning' ? 'text-yellow-300' : 'text-red-300'
+                                        }`}>{reminder.name}</p>
+                                        <p className="text-sm text-gray-200">{reminder.message}</p>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </section>
+                )}
                 
                 <section className="mb-8">
                     <div className="bg-gradient-to-r from-green-800/70 to-black/40 p-3 rounded-lg mb-4 shadow-md">
                         <h2 className="text-xl font-semibold text-white">Ações Rápidas</h2>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                       <button onClick={() => { setEntryToEdit(null); setActiveModal('entry'); }} className="flex items-center justify-center gap-3 bg-[var(--theme-card-bg)] hover:bg-gray-800/80 p-4 rounded-xl transition-colors">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                       <button onClick={() => { setEntryToEdit(null); setActiveModal('entry'); }} className="flex items-center justify-center gap-3 bg-[var(--theme-card-bg)] hover:bg-gray-800/80 p-4 rounded-xl transition-colors text-center">
                             <PlusIcon /> <span className="font-semibold">Adicionar Abastecimento</span>
                         </button>
-                        <button onClick={() => setActiveModal('trip')} className="flex items-center justify-center gap-3 bg-[var(--theme-card-bg)] hover:bg-gray-800/80 p-4 rounded-xl transition-colors">
+                        <button onClick={() => setActiveModal('trip')} className="flex items-center justify-center gap-3 bg-[var(--theme-card-bg)] hover:bg-gray-800/80 p-4 rounded-xl transition-colors text-center">
                             <CalculatorIcon /> <span className="font-semibold">Estimar Viagem</span>
                         </button>
-                        <button onClick={() => setActiveModal('maintenance')} className="flex items-center justify-center gap-3 bg-[var(--theme-card-bg)] hover:bg-gray-800/80 p-4 rounded-xl transition-colors">
+                        <button onClick={() => setActiveModal('maintenance')} className="flex items-center justify-center gap-3 bg-[var(--theme-card-bg)] hover:bg-gray-800/80 p-4 rounded-xl transition-colors text-center">
                             <WrenchIcon /> <span className="font-semibold">Manutenção</span>
+                        </button>
+                        <button onClick={handleExportCSV} className="flex items-center justify-center gap-3 bg-[var(--theme-card-bg)] hover:bg-gray-800/80 p-4 rounded-xl transition-colors text-center">
+                            <ExportIcon /> <span className="font-semibold">Exportar CSV</span>
                         </button>
                     </div>
                 </section>
