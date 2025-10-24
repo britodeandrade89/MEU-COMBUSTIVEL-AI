@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Timestamp } from 'firebase/firestore';
 import type { RawFuelEntry, ProcessedFuelEntry, MaintenanceData } from './types.ts';
@@ -432,13 +433,13 @@ const App: React.FC = () => {
 // Seed data function in case localStorage is empty
 const getInitialSeedData = (): RawFuelEntry[] => {
     return [
-        // September Data
-        { id: '1', date: Timestamp.fromDate(new Date('2033-09-12T00:00:00')), totalValue: 100.00, pricePerLiter: 6.19, kmEnd: 134620, fuelType: 'GASOLINA' as any, notes: 'Posto Shell' },
-        { id: '2', date: Timestamp.fromDate(new Date('2033-09-14T00:00:00')), totalValue: 100.00, pricePerLiter: 6.19, kmEnd: 134843, fuelType: 'GASOLINA' as any, notes: '' },
-        { id: '3', date: Timestamp.fromDate(new Date('2033-09-16T00:00:00')), totalValue: 50.00, pricePerLiter: 5.89, kmEnd: 134932, fuelType: 'GASOLINA' as any, notes: '' },
-        { id: '4', date: Timestamp.fromDate(new Date('2033-09-22T00:00:00')), totalValue: 50.00, pricePerLiter: 6.19, kmEnd: 135010, fuelType: 'GASOLINA' as any, notes: 'Viagem' },
-        // October Data
-        { id: '5', date: Timestamp.fromDate(new Date('2033-10-29T00:00:00')), totalValue: 273.82, pricePerLiter: 5.75, kmEnd: 135193, fuelType: 'GASOLINA' as any, notes: '' }
+        // April 2024 Data
+        { id: '1', date: Timestamp.fromDate(new Date('2024-04-12T00:00:00')), totalValue: 100.00, pricePerLiter: 6.19, kmEnd: 134620, fuelType: 'GASOLINA' as any, notes: 'Posto Shell' },
+        { id: '2', date: Timestamp.fromDate(new Date('2024-04-14T00:00:00')), totalValue: 100.00, pricePerLiter: 6.19, kmEnd: 134843, fuelType: 'GASOLINA' as any, notes: '' },
+        { id: '3', date: Timestamp.fromDate(new Date('2024-04-16T00:00:00')), totalValue: 50.00, pricePerLiter: 5.89, kmEnd: 134932, fuelType: 'GASOLINA' as any, notes: '' },
+        // May 2024 Data
+        { id: '4', date: Timestamp.fromDate(new Date('2024-05-22T00:00:00')), totalValue: 50.00, pricePerLiter: 6.19, kmEnd: 135010, fuelType: 'GASOLINA' as any, notes: 'Viagem' },
+        { id: '5', date: Timestamp.fromDate(new Date('2024-05-29T00:00:00')), totalValue: 273.82, pricePerLiter: 5.75, kmEnd: 135193, fuelType: 'GASOLINA' as any, notes: '' }
     ];
 };
 

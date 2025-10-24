@@ -104,7 +104,7 @@ export const EntryModal: React.FC<EntryModalProps> = ({ isOpen, onClose, onSave,
                     </div>
                     <div>
                         <label htmlFor="kmEnd" className="block text-sm font-medium text-gray-300">Odômetro (km)</label>
-                        <input type="number" name="kmEnd" id="kmEnd" value={formData.kmEnd} onChange={handleChange} placeholder={lastKm > 0 ? String(lastKm) : '123456'} required className="mt-1 block w-full bg-black/20 border-white/10 text-white rounded-md shadow-sm focus:ring-[var(--theme-accent)] focus:border-[var(--theme-accent)]"/>
+                        <input type="number" name="kmEnd" id="kmEnd" value={formData.kmEnd} onChange={handleChange} placeholder={lastKm > 0 ? `Ex: ${lastKm + 350}` : '123456'} required className="mt-1 block w-full bg-black/20 border-white/10 text-white rounded-md shadow-sm focus:ring-[var(--theme-accent)] focus:border-[var(--theme-accent)]"/>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-300">Tipo de Combustível</label>

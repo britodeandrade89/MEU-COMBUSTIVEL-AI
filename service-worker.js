@@ -3,7 +3,7 @@ const urlsToCache = [
     './',
     './index.html',
     './manifest.json',
-    './src/index.tsx',
+    './index.tsx',
     './src/App.tsx',
     './src/types.ts',
     './src/services/geminiService.ts',
